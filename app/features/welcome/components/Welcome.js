@@ -1,6 +1,6 @@
 // @flow
 
-import Button from '@atlaskit/button';
+// import Button from '@atlaskit/button';
 import { FieldTextStateless } from '@atlaskit/field-text';
 import { SpotlightTarget } from '@atlaskit/onboarding';
 import Page from '@atlaskit/page';
@@ -16,7 +16,6 @@ import { push } from 'react-router-redux';
 
 import { Navbar } from '../../navbar';
 import { Onboarding, startOnboarding } from '../../onboarding';
-import { RecentList } from '../../recent-list';
 import { createConferenceObjectFromURL } from '../../utils';
 
 import { Body, FieldWrapper, Form, Header, Label, Wrapper } from '../styled';
@@ -45,16 +44,6 @@ type State = {
      * Timer for animating the room name geneeration.
      */
     animateTimeoutId: ?TimeoutID,
-
-    /**
-     * Generated room name.
-     */
-    generatedRoomname: string,
-
-    /**
-     * Current room name placeholder.
-     */
-    roomPlaceholder: string,
 
     /**
      * Timer for re-generating a new room name.
@@ -94,18 +83,16 @@ class Welcome extends Component<Props, State> {
 
         this.state = {
             animateTimeoutId: undefined,
-            generatedRoomname: '',
-            roomPlaceholder: '',
             updateTimeoutId: undefined,
-            url
+            url,
+            password: ''
         };
 
         // Bind event handlers.
-        this._animateRoomnameChanging = this._animateRoomnameChanging.bind(this);
         this._onURLChange = this._onURLChange.bind(this);
+        this._onPasswordChange = this._onPasswordChange.bind(this);
         this._onFormSubmit = this._onFormSubmit.bind(this);
         this._onJoin = this._onJoin.bind(this);
-        this._updateRoomname = this._updateRoomname.bind(this);
     }
 
     /**
@@ -118,8 +105,6 @@ class Welcome extends Component<Props, State> {
      */
     componentDidMount() {
         this.props.dispatch(startOnboarding('welcome-page'));
-
-        this._updateRoomname();
     }
 
     /**
@@ -140,7 +125,13 @@ class Welcome extends Component<Props, State> {
         return (
             <Page navigation = { <Navbar /> }>
                 <AtlasKitThemeProvider mode = 'light'>
-                    <Wrapper>
+                    <Wrapper
+                        style = {{
+                            backgroundImage: 'url(https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1500&q=80)',
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            filter: 'grayscale(0.6)'
+                        }}>
                         { this._renderHeader() }
                         { this._renderBody() }
                         <Onboarding section = 'welcome-page' />
@@ -148,35 +139,6 @@ class Welcome extends Component<Props, State> {
                 </AtlasKitThemeProvider>
             </Page>
         );
-    }
-
-    _animateRoomnameChanging: (string) => void;
-
-    /**
-     * Animates the changing of the room name.
-     *
-     * @param {string} word - The part of room name that should be added to
-     * placeholder.
-     * @private
-     * @returns {void}
-     */
-    _animateRoomnameChanging(word: string) {
-        let animateTimeoutId;
-        const roomPlaceholder = this.state.roomPlaceholder + word.substr(0, 1);
-
-        if (word.length > 1) {
-            animateTimeoutId
-                = setTimeout(
-                    () => {
-                        this._animateRoomnameChanging(
-                            word.substring(1, word.length));
-                    },
-                    70);
-        }
-        this.setState({
-            animateTimeoutId,
-            roomPlaceholder
-        });
     }
 
     /**
@@ -211,8 +173,16 @@ class Welcome extends Component<Props, State> {
      * @returns {void}
      */
     _onJoin() {
-        const inputURL = this.state.url || this.state.generatedRoomname;
-        const conference = createConferenceObjectFromURL(inputURL);
+        const inputURL = this.state.url;
+        const password = this.state.password;
+
+        if (inputURL.length < 0 && password.length < 0) {
+            console.log('Provide room details');
+
+            return;
+        }
+
+        const conference = createConferenceObjectFromURL(inputURL, password);
 
         // Don't navigate if conference couldn't be created
         if (!conference) {
@@ -237,6 +207,21 @@ class Welcome extends Component<Props, State> {
         });
     }
 
+    _onPasswordChange: (*) => void;
+
+    /**
+     * Keeps URL input value and URL in state in sync.
+     *
+     * @param {SyntheticInputEvent<HTMLInputElement>} event - Event by which
+     * this function is called.
+     * @returns {void}
+     */
+    _onPasswordChange(event: SyntheticInputEvent<HTMLInputElement>) {
+        this.setState({
+            password: event.currentTarget.value
+        });
+    }
+
     /**
      * Renders the body for the welcome page.
      *
@@ -244,9 +229,7 @@ class Welcome extends Component<Props, State> {
      */
     _renderBody() {
         return (
-            <Body>
-                <RecentList />
-            </Body>
+            <Body />
         );
     }
 
@@ -263,9 +246,27 @@ class Welcome extends Component<Props, State> {
         return (
             <Header>
                 <SpotlightTarget name = 'conference-url'>
-                    <Form onSubmit = { this._onFormSubmit }>
-                        <Label>{ t('enterConferenceNameOrUrl') } </Label>
-                        <FieldWrapper>
+                    <Form
+                        onSubmit = { this._onFormSubmit }
+                        style = {{ backgroundColor: 'white',
+                            padding: 10 }}>
+                        <div
+                            style = {{ width: '100%',
+                                textAlign: 'center' }}>
+                            <img
+                                height = { 50 }
+                                src = 'https://prisma.ch/wp-content/uploads/2016/05/header-logo.png'
+                                style = {{ textAlign: 'center' }} />
+                        </div>
+
+                        <FieldWrapper
+                            style = {{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'stretch'
+                            }}>
+                            <Label style = {{ color: '#2d3748' }}>Meetingname</Label>
+
                             <FieldTextStateless
                                 autoFocus = { true }
                                 isInvalid = { locationError }
@@ -275,41 +276,41 @@ class Welcome extends Component<Props, State> {
                                 shouldFitContainer = { true }
                                 type = 'text'
                                 value = { this.state.url } />
-                            <Button
-                                appearance = 'primary'
+                                
+                            <Label
+                                style = {{
+                                    marginTop: 20,
+                                    color: '#2d3748'
+                                }}>Passwort</Label>
+
+                            <FieldTextStateless
+                                autoFocus = { false }
+                                isInvalid = { locationError }
+                                isLabelHidden = { true }
+                                onChange = { this._onPasswordChange }
+                                shouldFitContainer = { true }
+                                type = 'text'
+                                value = { this.state.password } />
+
+                            <button
                                 onClick = { this._onJoin }
+                                style = {{
+                                    marginTop: 20,
+                                    textAlign: 'center',
+                                    padding: 10,
+                                    backgroundColor: '#d69e2e',
+                                    color: 'white',
+                                    borderRadius: '.25rem',
+                                    border: 'none'
+                                }}
                                 type = 'button'>
                                 { t('go') }
-                            </Button>
+                            </button>
                         </FieldWrapper>
                     </Form>
                 </SpotlightTarget>
             </Header>
         );
-    }
-
-    _updateRoomname: () => void;
-
-    /**
-     * Triggers the generation of a new room name and initiates an animation of
-     * its changing.
-     *
-     * @protected
-     * @returns {void}
-     */
-    _updateRoomname() {
-        const generatedRoomname = generateRoomWithoutSeparator();
-        const roomPlaceholder = '';
-        const updateTimeoutId = setTimeout(this._updateRoomname, 10000);
-
-        this._clearTimeouts();
-        this.setState(
-            {
-                generatedRoomname,
-                roomPlaceholder,
-                updateTimeoutId
-            },
-            () => this._animateRoomnameChanging(generatedRoomname));
     }
 }
 

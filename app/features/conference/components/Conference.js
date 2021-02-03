@@ -122,6 +122,7 @@ class Conference extends Component<Props, State> {
      */
     componentDidMount() {
         const room = this.props.location.state.room;
+        const password = this.props.location.state.password;
         const serverTimeout = this.props._serverTimeout || config.defaultServerTimeout;
         const serverURL = this.props.location.state.serverURL
             || this.props._serverURL
@@ -129,6 +130,7 @@ class Conference extends Component<Props, State> {
 
         this._conference = {
             room,
+            password,
             serverURL
         };
 
@@ -236,6 +238,14 @@ class Conference extends Component<Props, State> {
                 this._onVideoConferenceJoined(conferenceInfo);
             }
         );
+        this._api.on('participantRoleChanged', (event: Object) => {
+            if (event.role === 'moderator') {
+                this._api.executeCommand('password', this._conference.password);
+            }
+        });
+        this._api.on('passwordRequired', () => {
+            this._api.executeCommand('password', this._conference.password);
+        });
 
         const { RemoteControl,
             setupScreenSharingRender,

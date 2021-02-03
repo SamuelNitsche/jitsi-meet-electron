@@ -46,7 +46,7 @@ export function openExternalLink(link: string) {
  * @param {string} inputURL - Combined server url with room separated by /.
  * @returns {Object}
  */
-export function createConferenceObjectFromURL(inputURL: string) {
+export function createConferenceObjectFromURL(inputURL: string, password: string) {
     const lastIndexOfSlash = inputURL.lastIndexOf('/');
     let room;
     let serverURL;
@@ -72,6 +72,7 @@ export function createConferenceObjectFromURL(inputURL: string) {
 
     return {
         room,
-        serverURL
+        serverURL,
+        password
     };
 }
